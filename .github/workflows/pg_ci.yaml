@@ -1,0 +1,87 @@
+name: PostgreSQL Integration CI
+
+on:
+  # Requirement 1: Trigger daily at midnight UTC
+  schedule:
+    - cron: '0 0 * * *'
+
+  # Requirement 3: Trigger on commits to the main branch
+  push:
+    branches:
+      - main
+
+  # Requirement 2: Manual trigger with version selection
+  workflow_dispatch:
+    inputs:
+      pg_version:
+        description: 'Select PostgreSQL Version'
+        required: true
+        default: '18'
+        type: choice
+        options:
+          - '16'
+          - '17'
+          - '18'
+
+jobs:
+  # Step A: Dynamically determine which versions to run
+  matrix-setup:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.set-versions.outputs.versions }}
+    steps:
+      - id: set-versions
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Requirement 1: Daily scheduled run tests all matrix versions
+            echo 'versions=["16", "17", "18"]' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Requirement 2: Manual trigger tests the user-selected version
+            echo 'versions=["${{ inputs.pg_version }}"]' >> $GITHUB_OUTPUT
+          else
+            # Requirement 3: Push to main tests PostgreSQL 18 only
+            echo 'versions=["18"]' >> $GITHUB_OUTPUT
+          fi
+
+  # Step B: Run the tests against the generated matrix
+  test:
+    needs: matrix-setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pg_version: ${{ json(needs.matrix-setup.outputs.versions) }}
+      fail-fast: false
+
+    # PostgreSQL Service Container
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg_version }}
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Health check ensures Postgres is ready before running tests
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Test Suite
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: test_user
+          PGPASSWORD: test_password
+          PGDATABASE: test_db
+        run: |
+          echo "Running tests against PostgreSQL version ${{ matrix.pg_version }}..."
+          # Replace the line below with your actual test invocation command
+          # e.g., npm test, pytest, go test ./...
+          pg_isready -h localhost -p 5432 -U test_user
