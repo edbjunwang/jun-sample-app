@@ -3,7 +3,7 @@ name: PostgreSQL Integration CI
 on:
   # Requirement 1: Trigger daily at midnight UTC
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '20 12 * * *'
 
   # Requirement 3: Trigger on commits to the main branch
   push:
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pg_version: ${{ json(needs.matrix-setup.outputs.versions) }}
+        pg_version: ${{ fromJson(needs.matrix-setup.outputs.versions) }}
       fail-fast: false
 
     # PostgreSQL Service Container
