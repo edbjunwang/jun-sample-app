@@ -3,7 +3,7 @@ name: PostgreSQL Integration CI
 on:
   # Requirement 1: Trigger daily at midnight UTC
   schedule:
-    - cron: '20 12 * * *'
+    - cron: '20 13 * * *'
 
   # Requirement 3: Trigger on commits to the main branch
   push:
