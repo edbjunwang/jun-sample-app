@@ -8,7 +8,7 @@ on:
   # Requirement 3: Trigger on commits to the main branch
   push:
     branches:
-      - main
+      - master
 
   # Requirement 2: Manual trigger with version selection
   workflow_dispatch:
